@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 2.8)
+project( lan_vid_pseudostream )
+find_package( OpenCV REQUIRED )
+add_executable( videoConsumer ../VideoConsumer.cpp ../PracticalSocket.cpp )
+target_link_libraries( videoConsumer ${OpenCV_LIBS} )
+add_executable( VideoProvider ../VideoProvider.cpp ../PracticalSocket.cpp )
+target_link_libraries( VideoProvider ${OpenCV_LIBS} )

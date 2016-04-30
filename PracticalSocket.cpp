@@ -333,25 +333,6 @@ void UDPSocket::sendTo(const void *buffer, int bufferLen,
   }
 }
 
-int UDPSocket::recvFromNB(void *buffer, int bufferLen, string &sourceAddress, unsigned short &sourcePort) throw(SocketException) {
-  struct timeval tv;
-  tv.tv_sec = 1;
-  tv.tv_usec = 0;
-  if (setsockopt(sockDesc, SOL_SOCKET, SO_RCVTIMEO,&tv,sizeof(tv)) < 0) {
-    perror("Error");
-  }
-  sockaddr_in clntAddr;
-  socklen_t addrLen = sizeof(clntAddr);
-  int rtn;
-  if ((rtn = recvfrom(sockDesc, (raw_type *) buffer, bufferLen, 0, (sockaddr *) &clntAddr, (socklen_t *) &addrLen)) < 0) {
-    //throw SocketException("Receive failed (recvfrom())", true);
-  }
-  sourceAddress = inet_ntoa(clntAddr.sin_addr);
-  sourcePort = ntohs(clntAddr.sin_port);
-
-  return rtn;
-}
-
 int UDPSocket::recvFrom(void *buffer, int bufferLen, string &sourceAddress,
     unsigned short &sourcePort) throw(SocketException) {
   sockaddr_in clntAddr;
