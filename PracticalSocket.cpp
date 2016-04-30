@@ -231,6 +231,10 @@ unsigned short CommunicatingSocket::getForeignPort() throw(SocketException) {
   return ntohs(addr.sin_port);
 }
 
+int CommunicatingSocket::getDescriptor() {
+    return sockDesc;
+}
+
 // TCPSocket Code
 
 TCPSocket::TCPSocket() 

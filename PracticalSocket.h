@@ -181,6 +181,9 @@ public:
    *   @exception SocketException thrown if unable to fetch foreign port
    */
   unsigned short getForeignPort() throw(SocketException);
+  
+  /* Added by CY */
+  int getDescriptor();
 
 protected:
   CommunicatingSocket(int type, int protocol) throw(SocketException);

@@ -28,6 +28,7 @@ using namespace std;
 using namespace cv;
 #include "config.h"
 
+#define REDUNDANT_FRAME_PERIOD  30  // The smaller the more reliable.
 
 int main(int argc, char * argv[]) {
     if ((argc < 3) || (argc > 3)) { // Test for correct number of arguments
@@ -36,7 +37,8 @@ int main(int argc, char * argv[]) {
     }
 
     string servAddress = argv[1]; // First arg: server address
-    unsigned short servPort = Socket::resolveService(argv[2], "udp");
+    unsigned short servPort1 = Socket::resolveService(argv[2], "udp");
+    unsigned short servPort2 = servPort1+1;
 
     try {
         UDPSocket sock;
@@ -52,6 +54,7 @@ int main(int argc, char * argv[]) {
         }
 
         clock_t last_cycle = clock();
+        int sock1FrameCount = 0;
         while (1) {
             cap >> frame;
             if(frame.size().width==0)continue;//simple integrity check; skip erroneous data...
@@ -66,10 +69,23 @@ int main(int argc, char * argv[]) {
 
             int ibuf[1];
             ibuf[0] = total_pack;
-            sock.sendTo(ibuf, sizeof(int), servAddress, servPort);
+            sock.sendTo(ibuf, sizeof(int), servAddress, servPort1);
+            
 
-            for (int i = 0; i < total_pack; i++)
-                sock.sendTo( & encoded[i * PACK_SIZE], PACK_SIZE, servAddress, servPort);
+            cout << "Total Pack: " << total_pack << endl;
+            for (int i = 0; i < total_pack; i++) {
+                sock.sendTo( & encoded[i * PACK_SIZE], PACK_SIZE, servAddress, servPort1);
+            }
+            
+            sock1FrameCount++;
+            if (sock1FrameCount >= REDUNDANT_FRAME_PERIOD) {
+              sock.sendTo(ibuf, sizeof(int), servAddress, servPort2);
+              for (int i = 0; i < total_pack; i++) {
+                //sock.sendTo( & encoded[i * PACK_SIZE], PACK_SIZE, servAddress, servPort2);
+              }
+              cout << "@ Redundant frame has sent out." << endl;
+              sock1FrameCount = 0;
+            }
 
             waitKey(FRAME_INTERVAL);
 
