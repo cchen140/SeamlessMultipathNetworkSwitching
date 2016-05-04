@@ -59,7 +59,11 @@ int main(int argc, char * argv[]) {
         unsigned short sourcePort; // Port of datagram source
 
         struct timespec ts_last;
+        struct timespec ts_last_if1;
+        struct timespec ts_last_if2;
         clock_gettime(CLOCK_MONOTONIC, &ts_last);
+        clock_gettime(CLOCK_MONOTONIC, &ts_last_if1);
+        clock_gettime(CLOCK_MONOTONIC, &ts_last_if2);
 
         /* Variables for the primary interface */
         int sock1State = 0;
@@ -172,6 +176,12 @@ int main(int argc, char * argv[]) {
  
             /* If any of the interface has received a complete frame, go and display it. */
             if ( (sock1State==2) || (sock2State==2) ) {
+                
+              struct timespec ts_next;
+              clock_gettime(CLOCK_MONOTONIC, &ts_next);  
+              struct timespec ts_duration;
+              double duration;
+                
               int total_pack;
               Mat rawData;
               if (sock1State == 2) {
@@ -183,13 +193,23 @@ int main(int argc, char * argv[]) {
                   /* Drop sock2's frame since we are using the frame from sock1. */
                   sock2State = 0;
                 }
-                cout << "Fram displayed from Main interface.\r" << endl;
+                //cout << "Fram displayed from Main interface.\r" << endl;
+                ts_duration = ts_diff(ts_last_if1, ts_next);
+                duration = (ts_duration.tv_nsec)/1000000000.0;
+                ts_last_if1.tv_nsec = ts_next.tv_nsec;
+                cout << ts_next.tv_nsec << "," << "IF1," <<  (1 / duration) << "," << (PACK_SIZE * total_pack / duration / 1024 * 8) << "\r" << endl;
+
               } else if (sock2State == 2) {
                 /* sock2 has a frame while sock1 doesn't have one. */
                 rawData = Mat(1, PACK_SIZE * sock2TotoalPack, CV_8UC1, longbuf2);
                 sock2State = 0;
                 total_pack = sock2TotoalPack;
-                cout << "Fram displayed from Second interface.\r" << endl;
+                //cout << "Fram displayed from Second interface.\r" << endl;
+                ts_duration = ts_diff(ts_last_if2, ts_next);
+                duration = (ts_duration.tv_nsec)/1000000000.0;
+                ts_last_if2.tv_nsec = ts_next.tv_nsec;
+                cout << ts_next.tv_nsec << "," << "IF2," <<  (1 / duration) << "," << (PACK_SIZE * total_pack / duration / 1024 * 8) << "\r" << endl;
+
               }
               
               //Mat rawData = Mat(1, PACK_SIZE * total_pack, CV_8UC1, longbuf);
@@ -200,19 +220,10 @@ int main(int argc, char * argv[]) {
               }
               imshow("recv", frame);
               //free(longbuf);
-
+ 
               waitKey(1);
-              
-              struct timespec ts_next;
-              clock_gettime(CLOCK_MONOTONIC, &ts_next);
-              struct timespec ts_duration = ts_diff(ts_last, ts_next);
-              
-              double duration = (ts_duration.tv_nsec)/1000000000.0;
-              cout << "\teffective FPS:" << (1 / duration) << " \tkbps:" << (PACK_SIZE * total_pack / duration / 1024 * 8) << "\r" << endl;
+              cout << ts_next.tv_nsec << "," << "all," <<  (1 / duration) << "," << (PACK_SIZE * total_pack / duration / 1024 * 8) << "\r" << endl;
 
-              cout << "time period:" << duration << "\r" << endl;
-
-              ts_last.tv_nsec = ts_next.tv_nsec;
             }
  
             
