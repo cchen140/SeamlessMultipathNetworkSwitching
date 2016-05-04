@@ -21,6 +21,7 @@
 #include "PracticalSocket.h"      // For UDPSocket and SocketException
 #include <iostream>               // For cout and cerr
 #include <cstdlib>                // For atoi()
+#include <ncurses.h>               // sudo apt-get install libncurses-dev. For getch() getting pressed key.
 
 using namespace std;
 
@@ -28,18 +29,22 @@ using namespace std;
 using namespace cv;
 #include "config.h"
 
-#define REDUNDANT_FRAME_PERIOD  30  // The smaller the more reliable.
+#define REDUNDANT_FRAME_PERIOD  10  // The smaller the more reliable.
 
 int main(int argc, char * argv[]) {
-    if ((argc < 3) || (argc > 3)) { // Test for correct number of arguments
-        cerr << "Usage: " << argv[0] << " <Server> <Server Port>\n";
+    if ((argc < 4) || (argc > 4)) { // Test for correct number of arguments
+        cerr << "Usage: " << argv[0] << " <Client IF1> <Client IF2> <Client Port>\n";
         exit(1);
     }
 
-    string servAddress = argv[1]; // First arg: server address
-    unsigned short servPort1 = Socket::resolveService(argv[2], "udp");
-    unsigned short servPort2 = servPort1+1;
+    //string servAddress = argv[1]; // First arg: server address
+    string client1Address = argv[1];
+    string client2Address = argv[2];
+    unsigned short servPort = Socket::resolveService(argv[3], "udp");
 
+    string primaryInterface = client1Address;
+    string secondInterface = client2Address;
+    
     try {
         UDPSocket sock;
         int jpegqual =  ENCODE_QUALITY; // Compression Parameter
@@ -55,7 +60,28 @@ int main(int argc, char * argv[]) {
 
         clock_t last_cycle = clock();
         int sock1FrameCount = 0;
+        int key = 0;
+        
+        
+        /* Initialize getch() */
+        initscr();
+        clear();
+        noecho();
+        cbreak();        
+        nodelay(stdscr, TRUE);  // to make getch() non-blocking.
+        
         while (1) {
+          
+            key = getch();  // Get key press
+            if (key != ERR) {
+              /* A key press is detected, exchange the role of primary and secondary interfaces. */
+              string temp = primaryInterface;
+              primaryInterface = secondInterface;
+              secondInterface = temp;
+              cout << "@ Primary: " << primaryInterface << "\tScond: " << secondInterface << "\r" << endl;
+            }
+                       
+          
             cap >> frame;
             if(frame.size().width==0)continue;//simple integrity check; skip erroneous data...
             resize(frame, send, Size(FRAME_WIDTH, FRAME_HEIGHT), 0, 0, INTER_LINEAR);
@@ -67,23 +93,25 @@ int main(int argc, char * argv[]) {
             imshow("send", send);
             int total_pack = 1 + (encoded.size() - 1) / PACK_SIZE;
 
+            /* Begin to transmit one frame to client's primary interface. */
             int ibuf[1];
             ibuf[0] = total_pack;
-            sock.sendTo(ibuf, sizeof(int), servAddress, servPort1);
-            
+            sock.sendTo(ibuf, sizeof(int), primaryInterface, servPort);
 
-            cout << "Total Pack: " << total_pack << endl;
+            //cout << "Total Pack: " << total_pack << endl;
             for (int i = 0; i < total_pack; i++) {
-                sock.sendTo( & encoded[i * PACK_SIZE], PACK_SIZE, servAddress, servPort1);
+                sock.sendTo( & encoded[i * PACK_SIZE], PACK_SIZE, primaryInterface, servPort);
             }
+            /* End of transmitting one from to client's primary interface. */
             
+            /* Transmit the redundant frame. */
             sock1FrameCount++;
             if (sock1FrameCount >= REDUNDANT_FRAME_PERIOD) {
-              sock.sendTo(ibuf, sizeof(int), servAddress, servPort2);
+              sock.sendTo(ibuf, sizeof(int), secondInterface, servPort);
               for (int i = 0; i < total_pack; i++) {
-                //sock.sendTo( & encoded[i * PACK_SIZE], PACK_SIZE, servAddress, servPort2);
+                sock.sendTo( & encoded[i * PACK_SIZE], PACK_SIZE, secondInterface, servPort);
               }
-              cout << "@ Redundant frame has sent out." << endl;
+              cout << "@ Redundant frame has sent out.\r" << endl;
               sock1FrameCount = 0;
             }
 
@@ -91,9 +119,9 @@ int main(int argc, char * argv[]) {
 
             clock_t next_cycle = clock();
             double duration = (next_cycle - last_cycle) / (double) CLOCKS_PER_SEC;
-            cout << "\teffective FPS:" << (1 / duration) << " \tkbps:" << (PACK_SIZE * total_pack / duration / 1024 * 8) << endl;
+            cout << "\teffective FPS:" << (1 / duration) << " \tkbps:" << (PACK_SIZE * total_pack / duration / 1024 * 8) << "\r" << endl;
 
-            cout << next_cycle - last_cycle;
+            //cout << next_cycle - last_cycle;
             last_cycle = next_cycle;
         }
         // Destructor closes the socket

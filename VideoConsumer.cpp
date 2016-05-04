@@ -24,6 +24,7 @@
 
 /* Added by CY */
 #include <sys/poll.h>        // http://beej.us/guide/bgnet/output/html/multipage/pollman.html
+#include <ncurses.h>         // sudo apt-get install libncurses-dev. For getch() getting pressed key.
 
 #define BUF_LEN 65540 // Larger than maximum UDP packet size
 #define TOTAL_PACK  30  // This value was dynamically configured in run-time with a range around 20 to 21 on my Surface. Set to 30 here to keep some room.
@@ -34,18 +35,20 @@ using namespace cv;
 
 int main(int argc, char * argv[]) {
 
-    if (argc != 2) { // Test for correct number of parameters
-        cerr << "Usage: " << argv[0] << " <Server Port>" << endl;
+    if (argc != 4) { // Test for correct number of parameters
+        cerr << "Usage: " << argv[0] << " <IF#1 IP> <IF#2 IP> <Server Port> " << endl;
         exit(1);
     }
 
-    unsigned short servPort1 = atoi(argv[1]); // First arg:  local port
-    unsigned short servPort2 = servPort1+1;
+    string if1Address = argv[1];
+    string if2Address = argv[2];
+    unsigned short servPort1 = atoi(argv[3]); // First arg:  local port
+    unsigned short servPort2 = servPort1;
 
     namedWindow("recv", CV_WINDOW_AUTOSIZE);
     try {
-        UDPSocket sock1(servPort1);
-        UDPSocket sock2(servPort2);
+        UDPSocket sock1(if1Address, servPort1);
+        UDPSocket sock2(if2Address, servPort2);
 
         //char buffer[BUF_LEN]; // Buffer for echo string
         
@@ -55,17 +58,34 @@ int main(int argc, char * argv[]) {
 
         clock_t last_cycle = clock();
 
+        /* Variables for the primary interface */
         int sock1State = 0;
         int sock1TotoalPack = 0;
         int sock1PackCount = 0;
         char buffer1[BUF_LEN]; // Buffer for echo string
         char * longbuf1 = new char[PACK_SIZE * TOTAL_PACK];
+        
+        /* Variables for the secondary interface */
         int sock2State = 0;
         int sock2TotoalPack = 0;
         int sock2PackCount = 0;
         char buffer2[BUF_LEN]; // Buffer for echo string
         char * longbuf2 = new char[PACK_SIZE * TOTAL_PACK];
+        
+        /* Initialize getch() */
+        initscr();
+        clear();
+        noecho();
+        cbreak();        
+        nodelay(stdscr, TRUE);  // to make getch() non-blocking.
+        int key = 0;
         while (1) {
+          
+            key = getch();
+            if (key != ERR) {
+              cout << "key pressed.\r" << endl;
+            }
+          
             int rv;
             struct pollfd ufds[2];
             ufds[0].fd = sock1.getDescriptor();
@@ -83,6 +103,11 @@ int main(int argc, char * argv[]) {
                 continue;
             }
             
+            /* sock1State and sock2State: 
+             * 0: Waiting for the initial packet (indicating the length of the frame packets) of a frame. 
+             * 1: The initial packet has been received, in the process of receiving frame packets. 
+             * 2: A complete frame has been received. This state is used for displaying the frame. 
+             */
             // check for events on s1:
             if (ufds[0].revents & POLLIN) {
               if (sock1State == 0) {
@@ -142,19 +167,26 @@ int main(int argc, char * argv[]) {
             }
    
  
+            /* If any of the interface has received a complete frame, go and display it. */
             if ( (sock1State==2) || (sock2State==2) ) {
+              int total_pack;
               Mat rawData;
               if (sock1State == 2) {
+                /* sock1 has a frame. */
                 rawData = Mat(1, PACK_SIZE * sock1TotoalPack, CV_8UC1, longbuf1);
                 sock1State = 0;
+                total_pack = sock1TotoalPack;
                 if (sock2State == 2) {
+                  /* Drop sock2's frame since we are using the frame from sock1. */
                   sock2State = 0;
                 }
-                cout << "Fram displayed from Main interface." << endl;
+                cout << "Fram displayed from Main interface.\r" << endl;
               } else if (sock2State == 2) {
+                /* sock2 has a frame while sock1 doesn't have one. */
                 rawData = Mat(1, PACK_SIZE * sock2TotoalPack, CV_8UC1, longbuf2);
                 sock2State = 0;
-                cout << "Fram displayed from Second interface." << endl;
+                total_pack = sock2TotoalPack;
+                cout << "Fram displayed from Second interface.\r" << endl;
               }
               
               //Mat rawData = Mat(1, PACK_SIZE * total_pack, CV_8UC1, longbuf);
@@ -169,9 +201,9 @@ int main(int argc, char * argv[]) {
               waitKey(1);
               clock_t next_cycle = clock();
               double duration = (next_cycle - last_cycle) / (double) CLOCKS_PER_SEC;
-              //cout << "\teffective FPS:" << (1 / duration) << " \tkbps:" << (PACK_SIZE * total_pack / duration / 1024 * 8) << endl;
+              cout << "\teffective FPS:" << (1 / duration) << " \tkbps:" << (PACK_SIZE * total_pack / duration / 1024 * 8) << "\r" << endl;
 
-              cout << next_cycle - last_cycle;
+              cout << "time period:" << next_cycle - last_cycle << "\r" << endl;
               last_cycle = next_cycle;
             }
  
