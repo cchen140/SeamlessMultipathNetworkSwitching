@@ -10,10 +10,10 @@ Multipath is the future.
 6. Start your VM
 7. In virtual box setting of the VM, select Devices > WebCams > Magic Camera Capture
 8. Inside the VM, install the cheese to check the web camera can be seen inside the VM
-  ```   
-  sudo apt-get install cheese
-  cheese
-  ```
+```   
+sudo apt-get install cheese
+cheese
+```
 
 You should see the cheese program in your VM shows the demo video
 
