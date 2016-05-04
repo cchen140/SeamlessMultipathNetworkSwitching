@@ -56,7 +56,8 @@ int main(int argc, char * argv[]) {
         string sourceAddress; // Address of datagram source
         unsigned short sourcePort; // Port of datagram source
 
-        clock_t last_cycle = clock();
+        struct timespec ts_last;
+        clock_gettime(CLOCK_MONOTONIC, &ts_last);
 
         /* Variables for the primary interface */
         int sock1State = 0;
@@ -199,12 +200,17 @@ int main(int argc, char * argv[]) {
               //free(longbuf);
 
               waitKey(1);
-              clock_t next_cycle = clock();
-              double duration = (next_cycle - last_cycle) / (double) CLOCKS_PER_SEC;
+              
+              struct timespec ts_next;
+              clock_gettime(CLOCK_MONOTONIC, &ts_next);
+              
+              //cout << next_cycle / (double) CLOCKS_PER_SEC << "\r" << endl;
+              float duration = (ts_next.tv_nsec - ts_last.tv_nsec)/1000000000.0;
               cout << "\teffective FPS:" << (1 / duration) << " \tkbps:" << (PACK_SIZE * total_pack / duration / 1024 * 8) << "\r" << endl;
 
-              cout << "time period:" << next_cycle - last_cycle << "\r" << endl;
-              last_cycle = next_cycle;
+              cout << "time period:" << duration << "\r" << endl;
+
+              ts_last = ts_next;
             }
  
             
