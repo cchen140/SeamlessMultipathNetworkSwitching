@@ -33,6 +33,8 @@
 using namespace cv;
 #include "config.h"
 
+timespec ts_diff(timespec start, timespec end);
+
 int main(int argc, char * argv[]) {
 
     if (argc != 4) { // Test for correct number of parameters
@@ -203,14 +205,14 @@ int main(int argc, char * argv[]) {
               
               struct timespec ts_next;
               clock_gettime(CLOCK_MONOTONIC, &ts_next);
+              struct timespec ts_duration = ts_diff(ts_last, ts_next);
               
-              //cout << next_cycle / (double) CLOCKS_PER_SEC << "\r" << endl;
-              float duration = (ts_next.tv_nsec - ts_last.tv_nsec)/1000000000.0;
+              double duration = (ts_duration.tv_nsec)/1000000000.0;
               cout << "\teffective FPS:" << (1 / duration) << " \tkbps:" << (PACK_SIZE * total_pack / duration / 1024 * 8) << "\r" << endl;
 
               cout << "time period:" << duration << "\r" << endl;
 
-              ts_last = ts_next;
+              ts_last.tv_nsec = ts_next.tv_nsec;
             }
  
             
@@ -221,4 +223,17 @@ int main(int argc, char * argv[]) {
     }
 
     return 0;
+}
+
+timespec ts_diff(timespec start, timespec end)
+{
+	timespec temp;
+	if ((end.tv_nsec-start.tv_nsec)<0) {
+		temp.tv_sec = end.tv_sec-start.tv_sec-1;
+		temp.tv_nsec = 1000000000+end.tv_nsec-start.tv_nsec;
+	} else {
+		temp.tv_sec = end.tv_sec-start.tv_sec;
+		temp.tv_nsec = end.tv_nsec-start.tv_nsec;
+	}
+	return temp;
 }

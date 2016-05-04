@@ -31,6 +31,8 @@ using namespace cv;
 
 #define REDUNDANT_FRAME_PERIOD  10  // The smaller the more reliable.
 
+timespec ts_diff(timespec start, timespec end);
+
 int main(int argc, char * argv[]) {
     if ((argc < 4) || (argc > 4)) { // Test for correct number of arguments
         cerr << "Usage: " << argv[0] << " <Client IF1> <Client IF2> <Client Port>\n";
@@ -58,7 +60,10 @@ int main(int argc, char * argv[]) {
             exit(1);
         }
 
-        clock_t last_cycle = clock();
+        
+        struct timespec ts_last;
+        clock_gettime(CLOCK_MONOTONIC, &ts_last);
+        
         int sock1FrameCount = 0;
         int key = 0;
         
@@ -117,12 +122,14 @@ int main(int argc, char * argv[]) {
 
             waitKey(FRAME_INTERVAL);
 
-            clock_t next_cycle = clock();
-            double duration = (next_cycle - last_cycle) / (double) CLOCKS_PER_SEC;
+            struct timespec ts_next;
+            clock_gettime(CLOCK_MONOTONIC, &ts_next);
+            struct timespec ts_duration = ts_diff(ts_last, ts_next);
+              
+            double duration = (ts_duration.tv_nsec)/1000000000.0;
             cout << "\teffective FPS:" << (1 / duration) << " \tkbps:" << (PACK_SIZE * total_pack / duration / 1024 * 8) << "\r" << endl;
 
-            //cout << next_cycle - last_cycle;
-            last_cycle = next_cycle;
+            ts_last.tv_nsec = ts_next.tv_nsec;
         }
         // Destructor closes the socket
 
@@ -132,4 +139,17 @@ int main(int argc, char * argv[]) {
     }
 
     return 0;
+}
+
+timespec ts_diff(timespec start, timespec end)
+{
+	timespec temp;
+	if ((end.tv_nsec-start.tv_nsec)<0) {
+		temp.tv_sec = end.tv_sec-start.tv_sec-1;
+		temp.tv_nsec = 1000000000+end.tv_nsec-start.tv_nsec;
+	} else {
+		temp.tv_sec = end.tv_sec-start.tv_sec;
+		temp.tv_nsec = end.tv_nsec-start.tv_nsec;
+	}
+	return temp;
 }
