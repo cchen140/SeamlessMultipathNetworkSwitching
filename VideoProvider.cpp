@@ -21,6 +21,9 @@
 #include "PracticalSocket.h"      // For UDPSocket and SocketException
 #include <iostream>               // For cout and cerr
 #include <cstdlib>                // For atoi()
+
+/* Added by CY */
+#include <sys/poll.h>        // http://beej.us/guide/bgnet/output/html/multipage/pollman.html
 #include <ncurses.h>               // sudo apt-get install libncurses-dev. For getch() getting pressed key.
 
 using namespace std;
@@ -38,6 +41,9 @@ int main(int argc, char * argv[]) {
         cerr << "Usage: " << argv[0] << " <Client IF1> <Client IF2> <Client Port>\n";
         exit(1);
     }
+    
+    string sourceAddress; // Address of datagram source
+    unsigned short sourcePort; // Port of datagram source
 
     //string servAddress = argv[1]; // First arg: server address
     string client1Address = argv[1];
@@ -49,6 +55,9 @@ int main(int argc, char * argv[]) {
     
     try {
         UDPSocket sock;
+        
+        UDPSocket sockHB(10005);  // The socket receiving the heartbeat signals.
+        
         int jpegqual =  ENCODE_QUALITY; // Compression Parameter
 
         Mat frame, send;
@@ -63,6 +72,15 @@ int main(int argc, char * argv[]) {
         
         struct timespec ts_last;
         clock_gettime(CLOCK_MONOTONIC, &ts_last);
+        
+        struct timespec ts_last_HB;
+        clock_gettime(CLOCK_MONOTONIC, &ts_last_HB);
+        
+        struct timespec last_heartbeat_ts_if1;
+        clock_gettime(CLOCK_MONOTONIC, &last_heartbeat_ts_if1); 
+        
+        struct timespec last_heartbeat_ts_if2;
+        clock_gettime(CLOCK_MONOTONIC, &last_heartbeat_ts_if2); 
         
         int sock1FrameCount = 0;
         int key = 0;
@@ -85,7 +103,62 @@ int main(int argc, char * argv[]) {
               secondInterface = temp;
               cout << "@ Primary: " << primaryInterface << "\tScond: " << secondInterface << "\r" << endl;
             }
-                       
+                     
+
+            int rv;
+            struct pollfd ufds[1];
+            ufds[0].fd = sockHB.getDescriptor();
+            ufds[0].events = POLLIN; // check for just normal data
+
+            rv = poll(ufds, 1, 100);    // The third parameter is timeout in minisecond.
+            
+            if (rv == -1) {
+                perror("poll"); // error occurred in poll()
+            } else if (rv == 0) {
+                //printf("Timeout occurred!  No data after 100 miniseconds.\n");
+                
+                struct timespec ts_this_HB;
+                clock_gettime(CLOCK_MONOTONIC, &ts_this_HB);
+                
+                struct timespec ts_HB_diff = ts_diff(last_heartbeat_ts_if1, ts_this_HB);
+                if ( (ts_HB_diff.tv_sec>HEARTBEAT_PERIOD_MS/1000) 
+                  || (((ts_HB_diff.tv_sec==HEARTBEAT_PERIOD_MS/1000))&&((ts_HB_diff.tv_nsec/1000000.0)>HEARTBEAT_PERIOD_MS)) ) {
+                  if (primaryInterface == client1Address) {
+                    string temp = primaryInterface;
+                    primaryInterface = secondInterface;
+                    secondInterface = temp;
+                    cout << "@Auto Primary: " << primaryInterface << "\tScond: " << secondInterface << "\r" << endl;
+                  }
+                }
+                
+                ts_HB_diff = ts_diff(last_heartbeat_ts_if2, ts_this_HB);
+                if ( (ts_HB_diff.tv_sec>HEARTBEAT_PERIOD_MS/1000) 
+                  || (((ts_HB_diff.tv_sec==HEARTBEAT_PERIOD_MS/1000))&&((ts_HB_diff.tv_nsec/1000000.0)>HEARTBEAT_PERIOD_MS)) ) {
+                  if (primaryInterface == client2Address) {
+                    string temp = primaryInterface;
+                    primaryInterface = secondInterface;
+                    secondInterface = temp;
+                    cout << "@Auto Primary: " << primaryInterface << "\tScond: " << secondInterface << "\r" << endl;
+                  }
+                }      
+            }          
+
+            if (ufds[0].revents & POLLIN) {
+              char buffer[10];
+              int recvMsgSize; // Size of received message
+              recvMsgSize = sockHB.recvFrom(buffer, 1, sourceAddress, sourcePort);
+              
+              if (buffer[0] == 1) {
+                // Heartbeat from IF1 received.
+                clock_gettime(CLOCK_MONOTONIC, &last_heartbeat_ts_if1); 
+                //cout << "@@@@@@ Heartbeat IF1 received. \r" << endl;
+              } else if (buffer[0] == 2) {
+                // Heartbeat from IF2 received.
+                clock_gettime(CLOCK_MONOTONIC, &last_heartbeat_ts_if2); 
+                //cout << "@@@@@@ Heartbeat IF2 received. \r" << endl;
+              }
+            }
+            
           
             cap >> frame;
             if(frame.size().width==0)continue;//simple integrity check; skip erroneous data...

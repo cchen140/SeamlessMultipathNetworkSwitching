@@ -37,14 +37,15 @@ timespec ts_diff(timespec start, timespec end);
 
 int main(int argc, char * argv[]) {
 
-    if (argc != 4) { // Test for correct number of parameters
-        cerr << "Usage: " << argv[0] << " <IF#1 IP> <IF#2 IP> <Server Port> " << endl;
+    if (argc != 5) { // Test for correct number of parameters
+        cerr << "Usage: " << argv[0] << " <IF#1 IP> <IF#2 IP> <Server IP> <Server Port> " << endl;
         exit(1);
     }
 
     string if1Address = argv[1];
     string if2Address = argv[2];
-    unsigned short servPort1 = atoi(argv[3]); // First arg:  local port
+    string serverAddress = argv[3];
+    unsigned short servPort1 = atoi(argv[4]); // First arg:  local port
     unsigned short servPort2 = servPort1;
 
     namedWindow("recv", CV_WINDOW_AUTOSIZE);
@@ -62,6 +63,9 @@ int main(int argc, char * argv[]) {
         struct timespec ts_last_if2;
         clock_gettime(CLOCK_MONOTONIC, &ts_last_if1);
         clock_gettime(CLOCK_MONOTONIC, &ts_last_if2);
+        
+        struct timespec ts_last_HB;
+        clock_gettime(CLOCK_MONOTONIC, &ts_last_HB);
         
         int timestamp_counter_if1 = 0;
         int timestamp_counter_if2 = 0;
@@ -87,11 +91,17 @@ int main(int argc, char * argv[]) {
         cbreak();        
         nodelay(stdscr, TRUE);  // to make getch() non-blocking.
         int key = 0;
+        int enable_if1_HB = 1;
         while (1) {
           
             key = getch();
             if (key != ERR) {
-              cout << "key pressed.\r" << endl;
+              if (enable_if1_HB == 1) {
+                enable_if1_HB = 0;
+              } else {
+                enable_if1_HB = 1;
+              }
+              cout << "IF1 HB toggled.\r" << endl;
             }
           
             int rv;
@@ -230,6 +240,29 @@ int main(int argc, char * argv[]) {
               waitKey(1);
               //cout << (ts_next.tv_nsec/1000000)+(timestamp_counter*1000) << "," << "all," <<  (1 / duration) << "," << (PACK_SIZE * total_pack / duration / 1024 * 8) << "\r" << endl;
 
+            }
+            
+            
+            struct timespec ts_this_HB;
+            clock_gettime(CLOCK_MONOTONIC, &ts_this_HB); 
+            struct timespec ts_HB_diff = ts_diff(ts_last_HB, ts_this_HB);
+            //if ( (ts_HB_diff.tv_sec>=(HEARTBEAT_PERIOD_MS/1000))
+            //  && ((ts_HB_diff.tv_nsec/1000000)>=HEARTBEAT_PERIOD_MS)) {
+            if ( (ts_HB_diff.tv_sec+(ts_HB_diff.tv_nsec/1000000000.0))>= (HEARTBEAT_PERIOD_MS/1000.0)) {
+                char sendBuf1[1];
+                sendBuf1[0] = 1;
+                if (enable_if1_HB == 1) {
+                  sock1.sendTo(sendBuf1, 1, serverAddress, 10005);
+                }
+                
+                char sendBuf2[1];
+                sendBuf2[0] = 2;
+                sock2.sendTo(sendBuf2, 1, serverAddress, 10005);
+                   
+                ts_last_HB.tv_nsec = ts_this_HB.tv_nsec;
+                ts_last_HB.tv_sec = ts_this_HB.tv_sec;
+                
+                //cout << "@@@ Heartbeat sent out. \r" << endl;
             }
  
             
