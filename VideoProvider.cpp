@@ -75,6 +75,8 @@ int main(int argc, char * argv[]) {
         cbreak();        
         nodelay(stdscr, TRUE);  // to make getch() non-blocking.
         
+        int timestamp_counter = 0;
+        
         while (1) {
           
             key = getch();  // Get key press
@@ -116,7 +118,7 @@ int main(int argc, char * argv[]) {
               for (int i = 0; i < total_pack; i++) {
                 sock.sendTo( & encoded[i * PACK_SIZE], PACK_SIZE, secondInterface, servPort);
               }
-              cout << "@ Redundant frame has sent out.\r" << endl;
+              //cout << "@ Redundant frame has sent out.\r" << endl;
               sock1FrameCount = 0;
             }
 
@@ -127,7 +129,13 @@ int main(int argc, char * argv[]) {
             struct timespec ts_duration = ts_diff(ts_last, ts_next);
               
             double duration = (ts_duration.tv_nsec)/1000000000.0;
-            cout << "\teffective FPS:" << (1 / duration) << " \tkbps:" << (PACK_SIZE * total_pack / duration / 1024 * 8) << "\r" << endl;
+            //cout << "\teffective FPS:" << (1 / duration) << " \tkbps:" << (PACK_SIZE * total_pack / duration / 1024 * 8) << "\r" << endl;
+            
+            if (ts_next.tv_nsec < ts_last.tv_nsec) {
+              timestamp_counter++;
+            }
+            
+            cout << (ts_next.tv_nsec/1000000)+(timestamp_counter*1000) << "," << "server," <<  (1 / duration) << "," << (PACK_SIZE * total_pack / duration / 1024 * 8) << "\r" << endl;
 
             ts_last.tv_nsec = ts_next.tv_nsec;
         }
