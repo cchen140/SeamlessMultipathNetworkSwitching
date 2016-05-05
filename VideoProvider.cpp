@@ -75,8 +75,6 @@ int main(int argc, char * argv[]) {
         cbreak();        
         nodelay(stdscr, TRUE);  // to make getch() non-blocking.
         
-        int timestamp_counter = 0;
-        
         while (1) {
           
             key = getch();  // Get key press
@@ -131,13 +129,12 @@ int main(int argc, char * argv[]) {
             double duration = (ts_duration.tv_nsec)/1000000000.0;
             //cout << "\teffective FPS:" << (1 / duration) << " \tkbps:" << (PACK_SIZE * total_pack / duration / 1024 * 8) << "\r" << endl;
             
-            if (ts_next.tv_nsec < ts_last.tv_nsec) {
-              timestamp_counter++;
-            }
             
-            cout << (ts_next.tv_nsec/1000000)+(timestamp_counter*1000) << "," << "server," <<  (1 / duration) << "," << (PACK_SIZE * total_pack / duration / 1024 * 8) << "\r" << endl;
+            // Timestamp's unit is second in the following log.
+            cout << ts_next.tv_sec + (ts_next.tv_nsec/1000000000.0) << "," << "server," <<  (1 / duration) << "," << (PACK_SIZE * total_pack / duration / 1024 * 8) << "\r" << endl;
 
             ts_last.tv_nsec = ts_next.tv_nsec;
+            ts_last.tv_sec = ts_next.tv_sec;
         }
         // Destructor closes the socket
 

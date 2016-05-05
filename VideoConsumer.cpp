@@ -58,10 +58,8 @@ int main(int argc, char * argv[]) {
         string sourceAddress; // Address of datagram source
         unsigned short sourcePort; // Port of datagram source
 
-        struct timespec ts_last;
         struct timespec ts_last_if1;
         struct timespec ts_last_if2;
-        clock_gettime(CLOCK_MONOTONIC, &ts_last);
         clock_gettime(CLOCK_MONOTONIC, &ts_last_if1);
         clock_gettime(CLOCK_MONOTONIC, &ts_last_if2);
         
@@ -175,7 +173,7 @@ int main(int argc, char * argv[]) {
                 }              
               }           
             }
-   
+            
  
             /* If any of the interface has received a complete frame, go and display it. */
             if ( (sock1State==2) || (sock2State==2) ) {
@@ -199,14 +197,11 @@ int main(int argc, char * argv[]) {
                 //cout << "Fram displayed from Main interface.\r" << endl;
                 ts_duration = ts_diff(ts_last_if1, ts_next);
                 duration = (ts_duration.tv_nsec)/1000000000.0;
-                
-                if (ts_next.tv_nsec < ts_last_if1.tv_nsec) {
-                  timestamp_counter_if1++;
-                }
-                
+
                 ts_last_if1.tv_nsec = ts_next.tv_nsec;
-                cout << (ts_next.tv_nsec/1000000)+(timestamp_counter_if1*1000) << "," << "IF1," <<  (1 / duration) << "," << (PACK_SIZE * total_pack / duration / 1024 * 8) << "\r" << endl;
-                cout << (ts_next.tv_nsec/1000000)+(timestamp_counter_if1*1000) << "," << "all," <<  (1 / duration) << "," << (PACK_SIZE * total_pack / duration / 1024 * 8) << "\r" << endl;
+                ts_last_if1.tv_sec = ts_next.tv_sec;
+                cout << ts_next.tv_sec + (ts_next.tv_nsec/1000000000.0) << "," << "IF1," <<  (1 / duration) << "," << (PACK_SIZE * total_pack / duration / 1024 * 8) << "\r" << endl;
+                cout << ts_next.tv_sec + (ts_next.tv_nsec/1000000000.0) << "," << "all," <<  (1 / duration) << "," << (PACK_SIZE * total_pack / duration / 1024 * 8) << "\r" << endl;
 
               } else if (sock2State == 2) {
                 /* sock2 has a frame while sock1 doesn't have one. */
@@ -216,14 +211,11 @@ int main(int argc, char * argv[]) {
                 //cout << "Fram displayed from Second interface.\r" << endl;
                 ts_duration = ts_diff(ts_last_if2, ts_next);
                 duration = (ts_duration.tv_nsec)/1000000000.0;
-                
-                if (ts_next.tv_nsec < ts_last_if2.tv_nsec) {
-                  timestamp_counter_if2++;
-                }
-                
+        
                 ts_last_if2.tv_nsec = ts_next.tv_nsec;
-                cout << (ts_next.tv_nsec/1000000)+(timestamp_counter_if2*1000) << "," << "IF2," <<  (1 / duration) << "," << (PACK_SIZE * total_pack / duration / 1024 * 8) << "\r" << endl;
-                cout << (ts_next.tv_nsec/1000000)+(timestamp_counter_if2*1000) << "," << "all," <<  (1 / duration) << "," << (PACK_SIZE * total_pack / duration / 1024 * 8) << "\r" << endl;
+                ts_last_if2.tv_sec = ts_next.tv_sec;
+                cout << ts_next.tv_sec + (ts_next.tv_nsec/1000000000.0) << "," << "IF2," <<  (1 / duration) << "," << (PACK_SIZE * total_pack / duration / 1024 * 8) << "\r" << endl;
+                cout << ts_next.tv_sec + (ts_next.tv_nsec/1000000000.0) << "," << "all," <<  (1 / duration) << "," << (PACK_SIZE * total_pack / duration / 1024 * 8) << "\r" << endl;
               }
               
               //Mat rawData = Mat(1, PACK_SIZE * total_pack, CV_8UC1, longbuf);
