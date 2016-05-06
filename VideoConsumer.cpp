@@ -202,6 +202,15 @@ int main(int argc, char * argv[]) {
                 total_pack = sock1TotoalPack;
                 if (sock2State == 2) {
                   /* Drop sock2's frame since we are using the frame from sock1. */
+                  
+                  ts_duration = ts_diff(ts_last_if2, ts_next);
+                  duration = (ts_duration.tv_nsec)/1000000000.0;
+          
+                  ts_last_if2.tv_nsec = ts_next.tv_nsec;
+                  ts_last_if2.tv_sec = ts_next.tv_sec;
+                  cout << ts_next.tv_sec + (ts_next.tv_nsec/1000000000.0) << "," << "IF2," <<  (1 / duration) << "," << (PACK_SIZE * total_pack / duration / 1024 * 8) << "\r" << endl;
+
+                  
                   sock2State = 0;
                 }
                 //cout << "Fram displayed from Main interface.\r" << endl;
