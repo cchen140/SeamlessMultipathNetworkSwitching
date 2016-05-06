@@ -199,7 +199,7 @@ int main(int argc, char * argv[]) {
             clock_gettime(CLOCK_MONOTONIC, &ts_next);
             struct timespec ts_duration = ts_diff(ts_last, ts_next);
               
-            double duration = (ts_duration.tv_nsec)/1000000000.0;
+            double duration = ts_duration.tv_sec + (ts_duration.tv_nsec/1000000000.0);
             //cout << "\teffective FPS:" << (1 / duration) << " \tkbps:" << (PACK_SIZE * total_pack / duration / 1024 * 8) << "\r" << endl;
             
             

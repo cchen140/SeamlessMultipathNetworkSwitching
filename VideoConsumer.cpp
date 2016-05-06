@@ -211,7 +211,7 @@ int main(int argc, char * argv[]) {
                   /* Drop sock2's frame since we are using the frame from sock1. */
                   
                   ts_duration = ts_diff(ts_last_if2, ts_next);
-                  duration = (ts_duration.tv_nsec)/1000000000.0;
+                  duration = ts_duration.tv_sec + (ts_duration.tv_nsec/1000000000.0);
           
                   ts_last_if2.tv_nsec = ts_next.tv_nsec;
                   ts_last_if2.tv_sec = ts_next.tv_sec;
@@ -222,7 +222,7 @@ int main(int argc, char * argv[]) {
                 }
                 //cout << "Fram displayed from Main interface.\r" << endl;
                 ts_duration = ts_diff(ts_last_if1, ts_next);
-                duration = (ts_duration.tv_nsec)/1000000000.0;
+                duration = ts_duration.tv_sec + (ts_duration.tv_nsec/1000000000.0);
 
                 ts_last_if1.tv_nsec = ts_next.tv_nsec;
                 ts_last_if1.tv_sec = ts_next.tv_sec;
@@ -236,7 +236,7 @@ int main(int argc, char * argv[]) {
                 total_pack = sock2TotoalPack;
                 //cout << "Fram displayed from Second interface.\r" << endl;
                 ts_duration = ts_diff(ts_last_if2, ts_next);
-                duration = (ts_duration.tv_nsec)/1000000000.0;
+                duration = ts_duration.tv_sec + (ts_duration.tv_nsec/1000000000.0);
         
                 ts_last_if2.tv_nsec = ts_next.tv_nsec;
                 ts_last_if2.tv_sec = ts_next.tv_sec;
