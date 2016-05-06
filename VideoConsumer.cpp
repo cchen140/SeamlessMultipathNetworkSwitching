@@ -112,7 +112,7 @@ int main(int argc, char * argv[]) {
             ufds[1].fd = sock2.getDescriptor();
             ufds[1].events = POLLIN; // check for just normal data
           
-            rv = poll(ufds, 2, 100);    // The third parameter is timeout in minisecond.
+            rv = poll(ufds, 2, 1);    // The third parameter is timeout in minisecond.
             
             if (rv == -1) {
                 perror("poll"); // error occurred in poll()
