@@ -149,7 +149,14 @@ int main(int argc, char * argv[]) {
                   sock1PackCount++;
                   if (sock1PackCount == sock1TotoalPack) {
                     // One frame data is complete.
-                    sock1State = 2;
+                    
+                    /* If if1 is disabled (softwarely), reset the state. */
+                    if (enable_if1_HB == 1) {
+                      sock1State = 2;
+                    } else {
+                      sock1State = 0;
+                    }
+                    
                   }
                 }      
               }    
