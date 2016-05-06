@@ -110,7 +110,7 @@ int main(int argc, char * argv[]) {
             ufds[0].fd = sockHB.getDescriptor();
             ufds[0].events = POLLIN; // check for just normal data
 
-            rv = poll(ufds, 1, 100);    // The third parameter is timeout in minisecond.
+            rv = poll(ufds, 1, 1);    // The third parameter is timeout in minisecond.
             
             if (rv == -1) {
                 perror("poll"); // error occurred in poll()

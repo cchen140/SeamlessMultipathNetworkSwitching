@@ -333,7 +333,7 @@ void UDPSocket::sendTo(const void *buffer, int bufferLen,
   // Write out the whole buffer as a single message.
   if (sendto(sockDesc, (raw_type *) buffer, bufferLen, 0,
              (sockaddr *) &destAddr, sizeof(destAddr)) != bufferLen) {
-    throw SocketException("Send failed (sendto())", true);
+    //throw SocketException("Send failed (sendto())", true);
   }
 }
 
