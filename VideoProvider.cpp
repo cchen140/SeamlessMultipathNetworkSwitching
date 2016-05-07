@@ -121,8 +121,8 @@ int main(int argc, char * argv[]) {
                 clock_gettime(CLOCK_MONOTONIC, &ts_this_HB);
                 
                 struct timespec ts_HB_diff = ts_diff(last_heartbeat_ts_if1, ts_this_HB);
-                if ( (ts_HB_diff.tv_sec>HEARTBEAT_PERIOD_MS/1000) 
-                  || (((ts_HB_diff.tv_sec==HEARTBEAT_PERIOD_MS/1000))&&((ts_HB_diff.tv_nsec/1000000.0)>HEARTBEAT_PERIOD_MS)) ) {
+                if ( (ts_HB_diff.tv_sec>(HEARTBEAT_PERIOD_MS*2)/1000) 
+                  || (((ts_HB_diff.tv_sec==((HEARTBEAT_PERIOD_MS*2)/1000))&&((ts_HB_diff.tv_nsec/1000000.0)>(HEARTBEAT_PERIOD_MS*2))) ) {
                   if (primaryInterface == client1Address) {
                     string temp = primaryInterface;
                     primaryInterface = secondInterface;
@@ -132,8 +132,8 @@ int main(int argc, char * argv[]) {
                 }
                 
                 ts_HB_diff = ts_diff(last_heartbeat_ts_if2, ts_this_HB);
-                if ( (ts_HB_diff.tv_sec>HEARTBEAT_PERIOD_MS/1000) 
-                  || (((ts_HB_diff.tv_sec==HEARTBEAT_PERIOD_MS/1000))&&((ts_HB_diff.tv_nsec/1000000.0)>HEARTBEAT_PERIOD_MS)) ) {
+                if ( (ts_HB_diff.tv_sec>(HEARTBEAT_PERIOD_MS*2)/1000) 
+                  || (((ts_HB_diff.tv_sec==((HEARTBEAT_PERIOD_MS*2)/1000)))&&((ts_HB_diff.tv_nsec/1000000.0)>(HEARTBEAT_PERIOD_MS*2))) ) {
                   if (primaryInterface == client2Address) {
                     string temp = primaryInterface;
                     primaryInterface = secondInterface;
