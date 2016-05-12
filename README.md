@@ -1,5 +1,4 @@
-# Seamless Multipath Network Switching for Live Video Streaming Applications
-Multipath is the future.
+# SmartStream: A Seamless Multipath Network Switching Protocol for Live Video Streaming Applications.
 
 # Virtual Webcam Setup
 1. Assume your host is Windows and testing envrionemnt is Ubuntu VM
